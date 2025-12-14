@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 import numpy as np
+import argparse
 from data_loader import load_data, add_rul
 from preprocessing import process_data, gen_sequence
 from models import RULModel
@@ -10,18 +11,23 @@ from models import RULModel
 # Hyperparameters
 SEQUENCE_LENGTH = 50
 BATCH_SIZE = 64
-EPOCHS = 10 # Short training for demonstration
+EPOCHS = 10 
 LEARNING_RATE = 0.001
 HIDDEN_DIM = 100
 NUM_LAYERS = 2
 
-def train():
+def train(dataset_name="FD001"):
+    print(f"--- Training on {dataset_name} ---")
     print("Loading data...")
-    train_df, test_df, rul_df = load_data("FD001")
-    
+    try:
+        train_df, test_df, rul_df = load_data(dataset_name)
+    except Exception as e:
+        print(f"Error loading data for {dataset_name}: {e}")
+        return
+
     print("Adding RUL...")
     train_df = add_rul(train_df)
-    # Clip RUL at 125 (common practice as RUL > 125 is not useful to predict)
+    # Clip RUL at 125
     train_df['RUL'] = train_df['RUL'].clip(upper=125)
     
     print("Preprocessing...")
@@ -66,8 +72,21 @@ def train():
         print(f"Epoch [{epoch+1}/{EPOCHS}], Loss: {total_loss/len(dataloader):.4f}")
         
     # Save model
-    torch.save(model.state_dict(), "rul_model.pth")
-    print("Model saved to rul_model.pth")
+    save_path = f"rul_model_{dataset_name}.pth"
+    torch.save(model.state_dict(), save_path)
+    print(f"Model saved to {save_path}\n")
 
 if __name__ == "__main__":
-    train()
+    parser = argparse.ArgumentParser(description="Train RUL model")
+    parser.add_argument('--dataset', type=str, default='all', 
+                        help='Dataset to train on: FD001, FD002, FD003, FD004 or all')
+    args = parser.parse_args()
+    
+    if args.dataset == 'all':
+        datasets = ['FD001', 'FD002', 'FD003', 'FD004']
+        for ds in datasets:
+            train(ds)
+    elif args.dataset in ['FD001', 'FD002', 'FD003', 'FD004']:
+        train(args.dataset)
+    else:
+        print("Invalid dataset. Choose from FD001...FD004 or all")
