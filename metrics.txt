@@ -1,0 +1,8 @@
+Test RMSE: 41.5712
+Accuracy:  0.7500
+F1 Score:  0.0000
+Precision: 0.0000
+Recall:    0.0000
+Confusion Matrix:
+[[75  0]
+ [25  0]]
